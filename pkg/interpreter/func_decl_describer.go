@@ -1,7 +1,9 @@
 package interpret
 
 import (
+	"errors"
 	"fmt"
+	"go/ast"
 	"strings"
 	"text/template"
 )
@@ -12,9 +14,52 @@ type ArgDesc struct {
 }
 
 type FuncDecl struct {
+	original           *ast.FuncDecl
 	Name               string
 	ParameterArguments []ArgDesc
 	ReturnArguments    []ArgDesc
+}
+
+func NewFuncDecl(f *ast.FuncDecl) (*FuncDecl, error) {
+	var err error
+	funcDecl := &FuncDecl{
+		original:           f,
+		Name:               f.Name.Name,
+		ParameterArguments: []ArgDesc{},
+		ReturnArguments:    []ArgDesc{},
+	}
+
+	funcDecl.ParameterArguments, err = parseArguments(f.Type.Params)
+	if err != nil {
+		return nil, err
+	}
+
+	funcDecl.ReturnArguments, err = parseArguments(f.Type.Results)
+	if err != nil {
+		return nil, err
+	}
+
+	return funcDecl, nil
+}
+
+func parseArguments(in *ast.FieldList) ([]ArgDesc, error) {
+	var out []ArgDesc
+	if in != nil {
+		for _, t := range in.List {
+			paramType, ok := t.Type.(*ast.Ident)
+			if !ok {
+				return nil, errors.New("invalid param list?")
+			}
+
+			var names []string
+			for _, n := range t.Names {
+				names = append(names, prepareName(n.Name))
+			}
+
+			out = append(out, ArgDesc{Type: paramType.Name, Names: names})
+		}
+	}
+	return out, nil
 }
 
 func (f FuncDecl) Describe() (string, error) {
@@ -25,6 +70,10 @@ func (f FuncDecl) Describe() (string, error) {
 
 	retstmt, err := f.describeReturns()
 	if err != nil {
+		return "", err
+	}
+
+	if _, err = f.describeBody(); err != nil {
 		return "", err
 	}
 
@@ -48,7 +97,7 @@ func (f FuncDecl) describeArguments() (string, error) {
 			if len(r.Names) == 1 {
 				out += fmt.Sprintf("a %s ", r.Type)
 				if r.Names[0] != "" {
-					out += fmt.Sprintf(" called %s", r.Names[0] )
+					out += fmt.Sprintf(" called %s", r.Names[0])
 				}
 			} else {
 				out += fmt.Sprintf(" %ss ", r.Type)
@@ -57,8 +106,8 @@ func (f FuncDecl) describeArguments() (string, error) {
 
 		if len(r.Names) > 2 {
 			out += strings.Join(r.Names, ", and ")
-		} else  if len(r.Names) == 2 {
-			out += strings.Join(r.Names,  " and ")
+		} else if len(r.Names) == 2 {
+			out += strings.Join(r.Names, " and ")
 		}
 		out += ", "
 	}
@@ -85,8 +134,11 @@ func (f FuncDecl) describeReturns() (string, error) {
 }
 
 func (f FuncDecl) describeBody() (string, error) {
-	return "", nil
+	for _, b := range f.original.Body.List {
+		println(b)
+	}
 
+	return "", nil
 }
 
 func (f FuncDecl) TemplateFuncs() template.FuncMap {

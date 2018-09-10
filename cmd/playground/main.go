@@ -29,7 +29,7 @@ func main() {
 		"log"
 	)
 
-	func whatever(a, b string, fart bool) error {
+	func whatever(a, url string, arbitrary bool) error {
 		return nil	
 	}
 

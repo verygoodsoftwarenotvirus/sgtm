@@ -1,7 +1,6 @@
 package interpret
 
 import (
-	"errors"
 	"fmt"
 	"go/ast"
 	"go/token"
@@ -38,15 +37,11 @@ func (i *interpreter) RawOutput() string {
 	return i.outputString
 }
 
-func (i *interpreter) prepareImport(spec *ast.ImportSpec) string {
-	return i.replacer.Replace(strings.Replace(spec.Path.Value, `"`, ``, -1))
-}
-
 func (i *interpreter) handleImport(d *ast.GenDecl) {
 	i.addToOutput("importing")
 	for ix, spec := range d.Specs {
 		if is, ok := spec.(*ast.ImportSpec); ok {
-			i.addToOutput(i.prepareImport(is))
+			i.addToOutput(prepareName(is.Path.Value))
 			if ix != len(d.Specs)-1 {
 				i.addToOutput(" and ")
 			}
@@ -56,19 +51,7 @@ func (i *interpreter) handleImport(d *ast.GenDecl) {
 }
 
 func (i *interpreter) handleFunction(f *ast.FuncDecl) error {
-	var err error
-	funcDecl := &FuncDecl{
-		Name:               f.Name.Name,
-		ParameterArguments: []ArgDesc{},
-		ReturnArguments:    []ArgDesc{},
-	}
-
-	funcDecl.ParameterArguments, err = i.parseArguments(f.Type.Params)
-	if err != nil {
-		return err
-	}
-
-	funcDecl.ReturnArguments, err = i.parseArguments(f.Type.Results)
+	funcDecl, err := NewFuncDecl(f)
 	if err != nil {
 		return err
 	}
@@ -79,26 +62,6 @@ func (i *interpreter) handleFunction(f *ast.FuncDecl) error {
 		i.addToOutput(s)
 	}
 	return nil
-}
-
-func (i *interpreter) parseArguments(in *ast.FieldList) ([]ArgDesc, error) {
-	var out []ArgDesc
-	if in != nil {
-		for _, t := range in.List {
-			paramType, ok := t.Type.(*ast.Ident)
-			if !ok {
-				return nil, errors.New("invalid param list?")
-			}
-
-			var names []string
-			for _, n := range t.Names {
-				names = append(names, n.Name)
-			}
-
-			out = append(out, ArgDesc{Type: paramType.Name, Names: names})
-		}
-	}
-	return out, nil
 }
 
 func (i *interpreter) Interpret(input *ast.File) error {
