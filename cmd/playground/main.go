@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -28,7 +29,7 @@ func main() {
 		"log"
 	)
 
-	func whatever(s, x string, fart bool) error {
+	func whatever(a, url string, arbitrary bool) error {
 		return nil	
 	}
 
@@ -38,7 +39,9 @@ func main() {
 `
 	x := interpret.NewInterpreter()
 	p := parseChunkOfCode(codeSample)
-	x.Interpret(p)
+	if err := x.Interpret(p); err != nil {
+		log.Fatal(err)
+	}
 	y := x.RawOutput()
-	use(y)
+	fmt.Println(y)
 }
