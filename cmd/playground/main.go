@@ -2,12 +2,12 @@ package main
 
 import (
 	"fmt"
+	"github.com/verygoodsoftwarenotvirus/sgtm/pkg/interpreter"
 	"go/ast"
 	"go/parser"
 	"go/token"
 	"log"
-
-	"github.com/verygoodsoftwarenotvirus/sgtm/pkg/interpreter"
+	"regexp"
 )
 
 func use(...interface{}) {}
@@ -30,7 +30,7 @@ func main() {
 	)
 
 	func whatever(a, url string, arbitrary bool) error {
-		return nil	
+		return nil
 	}
 
 	func main() {
@@ -42,6 +42,6 @@ func main() {
 	if err := x.Interpret(p); err != nil {
 		log.Fatal(err)
 	}
-	y := x.RawOutput()
-	fmt.Println(y)
+
+	fmt.Println(regexp.MustCompile(`\s+`).ReplaceAllString(x.RawOutput(), " "))
 }

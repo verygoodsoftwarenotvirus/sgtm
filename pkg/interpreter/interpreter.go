@@ -9,6 +9,13 @@ import (
 	"strings"
 )
 
+type verbosity int
+
+const (
+	Normal verbosity = iota
+	HighVerbosity
+)
+
 type Interpreter interface {
 	Interpret(input *ast.File) error
 	RawOutput() string
@@ -42,6 +49,9 @@ func (i *interpreter) handleImport(d *ast.GenDecl) {
 	for ix, spec := range d.Specs {
 		if is, ok := spec.(*ast.ImportSpec); ok {
 			i.addToOutput(prepareName(is.Path.Value))
+			if is.Name != nil && is.Name.Name != "" && is.Name.Name != is.Path.Value {
+				i.addToOutput(fmt.Sprintf(" as %s ", is.Name.Name))
+			}
 			if ix != len(d.Specs)-1 {
 				i.addToOutput(" and ")
 			}
