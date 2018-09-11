@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"go/ast"
-	"strings"
-	"text/template"
 )
 
 type ArgDesc struct {
@@ -15,40 +13,31 @@ type ArgDesc struct {
 
 type FuncDecl struct {
 	original           *ast.FuncDecl
+	Verbosity          verbosity
 	Name               string
 	ParameterArguments []ArgDesc
 	ReturnArguments    []ArgDesc
 }
 
-func NewFuncDecl(f *ast.FuncDecl) (*FuncDecl, error) {
-	var err error
+func NewFuncDecl(f *ast.FuncDecl, v verbosity) *FuncDecl {
 	funcDecl := &FuncDecl{
 		original:           f,
+		Verbosity:          v,
 		Name:               f.Name.Name,
-		ParameterArguments: []ArgDesc{},
-		ReturnArguments:    []ArgDesc{},
+		ParameterArguments: parseArguments(f.Type.Params),
+		ReturnArguments:    parseArguments(f.Type.Results),
 	}
 
-	funcDecl.ParameterArguments, err = parseArguments(f.Type.Params)
-	if err != nil {
-		return nil, err
-	}
-
-	funcDecl.ReturnArguments, err = parseArguments(f.Type.Results)
-	if err != nil {
-		return nil, err
-	}
-
-	return funcDecl, nil
+	return funcDecl
 }
 
-func parseArguments(in *ast.FieldList) ([]ArgDesc, error) {
+func parseArguments(in *ast.FieldList) []ArgDesc {
 	var out []ArgDesc
 	if in != nil {
 		for _, t := range in.List {
 			paramType, ok := t.Type.(*ast.Ident)
 			if !ok {
-				return nil, errors.New("invalid param list?")
+				panic(errors.New("invalid param list?"))
 			}
 
 			var names []string
@@ -56,10 +45,10 @@ func parseArguments(in *ast.FieldList) ([]ArgDesc, error) {
 				names = append(names, prepareName(n.Name))
 			}
 
-			out = append(out, ArgDesc{Type: paramType.Name, Names: names})
+			out = append(out, ArgDesc{Type: prepareName(paramType.Name), Names: names})
 		}
 	}
-	return out, nil
+	return out
 }
 
 func (f FuncDecl) Describe() (string, error) {
@@ -81,105 +70,60 @@ func (f FuncDecl) Describe() (string, error) {
 }
 
 func (f FuncDecl) describeArguments() (string, error) {
-	var out = " accepting "
-	if f.ParameterArguments == nil {
-		out += "nothing. "
-		return out, nil
-	}
+	tmpl := `
+	accepting
+	{{ if not .ParameterArguments }} nothing {{ else}}
+		{{ range $i, $arg := .ParameterArguments}}
+			{{ if ne $i 0 }} and {{ end }}
+			{{ if lt (len $arg.Names) 2 }}
+				{{ if startsWithVowel $arg.Type }} an {{ else }} a {{ end }} {{ $arg.Type }}
+			{{ else }}
+				{{ len $arg.Names }} {{ $arg.Type }}s
+				{{ if verbose $.Verbosity }} called
+					{{ range $i, $x := $arg.Names }}
+						{{ if (ne (len $x) 0) }}
+							{{ if ne $i 0 }} and {{ end }} {{ $x }}
+						{{ end }}
+					{{ end }}
+				{{ end }}
+			{{ end }}
+		{{ end }}
+	{{ end }}
 
-	for i, r := range f.ParameterArguments {
-		if i != 0 {
-			out += " and "
-		}
-		if startsWithVowel(r.Type) {
-			out += fmt.Sprintf("an %s ", r.Type)
-		} else {
-			if len(r.Names) == 1 {
-				out += fmt.Sprintf("a %s ", r.Type)
-				if r.Names[0] != "" {
-					out += fmt.Sprintf(" called %s", r.Names[0])
-				}
-			} else {
-				out += fmt.Sprintf(" %ss ", r.Type)
-			}
-		}
+	`
 
-		if len(r.Names) > 2 {
-			out += strings.Join(r.Names, ", and ")
-		} else if len(r.Names) == 2 {
-			out += strings.Join(r.Names, " and ")
-		}
-		out += ", "
-	}
-	return out, nil
+	return RenderTemplate(tmpl, f)
 }
 
 func (f FuncDecl) describeReturns() (string, error) {
-	var out = " returning "
-	if f.ReturnArguments == nil {
-		out += "nothing. "
-		return out, nil
-	}
+	tmpl := `
+	returning
+	{{ if not .ReturnArguments }} nothing {{ else}}
+		{{ range $i, $arg := .ReturnArguments}}
+			{{ if ne $i 0 }} and {{ end }}
+			{{ if lt (len $arg.Names) 2 }}
+				{{ if startsWithVowel $arg.Type }} an {{ else }} a {{ end }} {{ $arg.Type }}
+			{{ else }}
+				{{ len $arg.Names }} {{ $arg.Type }}s
+				{{ if verbose $.Verbosity }} called
+					{{ range $i, $x := $arg.Names }}
+						{{ if (ne (len $x) 0) }}
+							{{ if ne $i 0 }} and {{ end }} {{ $x }}
+						{{ end }}
+					{{ end }}
+				{{ end }}
+			{{ end }}
+		{{ end }}
+	{{ end }}
 
-	for _, r := range f.ReturnArguments {
-		if startsWithVowel(r.Type) {
-			out += fmt.Sprintf("an %s ", r.Type)
-		} else {
-			out += fmt.Sprintf("a %s ", r.Type)
-		}
+	`
 
-		out += strings.Join(r.Names, ", and ")
-	}
-	return out, nil
+	return RenderTemplate(tmpl, f)
 }
 
 func (f FuncDecl) describeBody() (string, error) {
-	for _, b := range f.original.Body.List {
-		println(b)
-	}
+	nbs := NewBlockStmt(f.original.Body.List, f.Verbosity)
+	nbs.Describe()
 
 	return "", nil
-}
-
-func (f FuncDecl) TemplateFuncs() template.FuncMap {
-	return template.FuncMap{
-		"dec": func(i int) int {
-			i--
-			return i
-		},
-		"returns": func() bool {
-			answer := f.ReturnArguments != nil
-			return answer
-		},
-		"accepts": func() bool {
-			answer := f.ParameterArguments != nil
-			return answer
-		},
-		"singular": func(ad ArgDesc) string {
-			if len(ad.Names) <= 1 {
-				if startsWithVowel(ad.Type) {
-					return "an"
-				}
-				return "a"
-			}
-			return ""
-		},
-		"plural": func(ad ArgDesc) string {
-			if len(ad.Names) >= 2 {
-				return "s"
-			}
-			return ""
-		},
-		"joinargs": func(ad ArgDesc) string {
-			if ad.Names == nil {
-				return ""
-			}
-
-			if len(ad.Names) == 2 {
-				return fmt.Sprintf("called %s", strings.Join(ad.Names, " and "))
-			}
-
-			return fmt.Sprintf("called %s", strings.Join(ad.Names, ", and "))
-		},
-	}
 }
