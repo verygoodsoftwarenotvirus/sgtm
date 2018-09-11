@@ -1,7 +1,6 @@
 package interpret
 
 import (
-	"fmt"
 	"go/ast"
 	"go/token"
 	"log"
@@ -19,24 +18,31 @@ const (
 )
 
 type Interpreter interface {
-	Interpret(input *ast.File) error
+	InterpretFile(input *ast.File, chunks []string) error
 	RawOutput() string
 }
 
 type interpreter struct {
-	output    []string
-	verbosity verbosity
-	fileset   *token.FileSet
-	debug     bool
-	logger    *log.Logger
-	replacer  *strings.Replacer
+	partsToRead map[string]struct{}
+	output      []string
+	verbosity   verbosity
+	fileset     *token.FileSet
+	debug       bool
+	logger      *log.Logger
+	replacer    *strings.Replacer
 }
 
-func NewInterpreter() Interpreter {
+func NewInterpreter(thingsToRead []string) Interpreter {
+	partsToRead := map[string]struct{}{}
+	for _, p := range thingsToRead {
+		partsToRead[p] = struct{}{}
+	}
+
 	return &interpreter{
-		verbosity: NormalVerbosity,
-		logger:    log.New(os.Stdout, "", log.LstdFlags),
-		replacer:  defaultStringReplacer,
+		partsToRead: partsToRead,
+		verbosity:   NormalVerbosity,
+		logger:      log.New(os.Stdout, "", log.LstdFlags),
+		replacer:    defaultStringReplacer,
 	}
 }
 
@@ -49,12 +55,12 @@ func (i *interpreter) addToOutput(s string) {
 }
 
 func (i *interpreter) handleImport(d *ast.GenDecl) {
-	s, _ := NewImportSpec(d, i.verbosity).Describe()
+	s, _ := NewImportSpec(d).Describe()
 	i.addToOutput(s)
 }
 
 func (i *interpreter) handleFunction(f *ast.FuncDecl) error {
-	s, err := NewFuncDecl(f, i.verbosity).Describe()
+	s, err := NewFuncDecl(f).Describe()
 	if err != nil {
 		return err
 	} else {
@@ -78,22 +84,44 @@ func (i *interpreter) handleType(d *ast.GenDecl) {
 	}
 }
 
-func (i *interpreter) Interpret(input *ast.File) error {
-	i.addToOutput(fmt.Sprintf("package %s. ", input.Name.Name))
+func (i *interpreter) InterpretFile(input *ast.File, chunks []string) error {
+	var err error
+	chunksFound := map[string]string{}
 	for _, decl := range input.Decls {
 		switch x := decl.(type) {
 		case *ast.GenDecl:
 			switch x.Tok {
 			case token.IMPORT:
-				i.handleImport(x)
+				i := NewImportSpec(x)
+				chunksFound[i.GetName()], err = i.Describe()
+				if err != nil {
+					return err
+				}
 			case token.TYPE:
-				i.handleType(x)
+				for _, spec := range x.Specs {
+					if ts, ok := spec.(*ast.TypeSpec); ok {
+						i := NewTypeDescriber(ts)
+						chunksFound[i.GetName()], err = i.Describe()
+						if err != nil {
+							return err
+						}
+					}
+				}
 			}
 		case *ast.FuncDecl:
-			if err := i.handleFunction(x); err != nil {
+			fd := NewFuncDecl(x)
+			chunksFound[fd.GetName()], err = fd.Describe()
+			if err != nil {
 				return err
 			}
 		}
 	}
+
+	for _, chunk := range chunks {
+		if s, ok := chunksFound[chunk]; ok {
+			i.addToOutput(s)
+		}
+	}
+
 	return nil
 }

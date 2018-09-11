@@ -34,18 +34,18 @@ func main() {
 	type Structure interface {
 		DoSomeWork(arg string) (uintptr, error) 
 	}
-
+	
 	func (f fart) whatever(a, url string, arbitrary bool) error {
 		return nil
 	}
-
+	
 	func main() {
 		fmt.Println("hello, world!")
 	}
 `
-	x := interpret.NewInterpreter()
+	x := interpret.NewInterpreter(nil)
 	p := parseChunkOfCode(codeSample)
-	if err := x.Interpret(p); err != nil {
+	if err := x.InterpretFile(p, []string{"Structure"}); err != nil {
 		log.Fatal(err)
 	}
 

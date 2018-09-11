@@ -5,13 +5,16 @@ import (
 	"strings"
 )
 
+const (
+	ImportBlockName = "import block"
+)
+
 type ImportSpec struct {
-	verbosity verbosity
-	original  *ast.GenDecl
-	Imports   map[string]string // map[importAlias]importPath
+	original *ast.GenDecl
+	Imports  map[string]string // map[importAlias]importPath
 }
 
-func NewImportSpec(in *ast.GenDecl, v verbosity) *ImportSpec {
+func NewImportSpec(in *ast.GenDecl) Describer {
 	imports := map[string]string{}
 	for _, spec := range in.Specs {
 		if is, ok := spec.(*ast.ImportSpec); ok {
@@ -25,10 +28,13 @@ func NewImportSpec(in *ast.GenDecl, v verbosity) *ImportSpec {
 	}
 
 	return &ImportSpec{
-		original:  in,
-		verbosity: v,
-		Imports:   imports,
+		original: in,
+		Imports:  imports,
 	}
+}
+
+func (i *ImportSpec) GetName() string {
+	return ImportBlockName
 }
 
 func (i *ImportSpec) Describe() (string, error) {
