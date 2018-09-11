@@ -12,14 +12,13 @@ type ArgDesc struct {
 
 type FuncDecl struct {
 	original           *ast.FuncDecl
-	Verbosity          verbosity
 	Name               string
 	ReceiverData       *ReceiverData
 	ParameterArguments []ArgDesc
 	ReturnArguments    []ArgDesc
 }
 
-func NewFuncDecl(f *ast.FuncDecl, v verbosity) *FuncDecl {
+func NewFuncDecl(f *ast.FuncDecl) Describer {
 	funcDecl := &FuncDecl{
 		original:           f,
 		Name:               f.Name.Name,
@@ -160,6 +159,10 @@ func describeBody() (string, error) {
 	//nbs.Describe()
 
 	return "", nil
+}
+
+func (f FuncDecl) GetName() string {
+	return f.Name
 }
 
 func (f FuncDecl) Describe() (string, error) {

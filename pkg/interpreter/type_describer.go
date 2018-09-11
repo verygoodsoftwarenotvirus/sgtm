@@ -19,7 +19,7 @@ type InterfaceDescriber struct {
 
 type InterfaceMethodDescriber struct {
 	BelongsTo string
-	FuncName  string
+	Name      string
 	Args      []ArgDesc
 	Returns   []ArgDesc
 }
@@ -61,7 +61,7 @@ func NewTypeDescriber(in *ast.TypeSpec) Describer {
 			if ft, ok := method.Type.(*ast.FuncType); ok && len(method.Names) > 0 {
 				out.Methods = append(out.Methods, InterfaceMethodDescriber{
 					BelongsTo: out.Name,
-					FuncName:  method.Names[0].Name,
+					Name:      method.Names[0].Name,
 					Returns:   parseArguments(ft.Results),
 					Args:      parseArguments(ft.Params),
 				})
@@ -72,16 +72,20 @@ func NewTypeDescriber(in *ast.TypeSpec) Describer {
 	return nil
 }
 
+func (td *TypeDescriber) GetName() string {
+	return td.Name
+}
+
 func (td *TypeDescriber) Describe() (string, error) { /////////////////////////////////////////////////////// {{ else if eq (len $vars) 2 }} and
-	tmpl := `type {{ prepare .Name }} 
+	tmpl := `type {{ prepare .Name }}
 	{{ if exported .Name }}
-		, which is exported,  
-	{{ end }} 
-	has the following fields: 
-	{{ range $type, $vars := .Fields }} 
-		{{ range $i, $var := $vars }} {{ $var }} {{ if and (gt (len $vars) 1) (eq (sub 1 $i) (len $vars)) }}, {{ end }}{{ end }} which 
+		, which is exported,
+	{{ end }}
+	has the following fields:
+	{{ range $type, $vars := .Fields }}
+		{{ range $i, $var := $vars }} {{ $var }} {{ if and (gt (len $vars) 1) (eq (sub 1 $i) (len $vars)) }}, {{ end }}{{ end }} which
 		{{ if gt (len $vars) 1 }} are {{ else }} is a {{ end }}
-		{{ prepare $type }}{{ if gt (len $vars) 1 }}s{{ end }} 
+		{{ prepare $type }}{{ if gt (len $vars) 1 }}s{{ end }}
 	{{ end }}.`
 	s, err := RenderTemplate(tmpl, td)
 	return s, err
@@ -107,6 +111,10 @@ func (id *InterfaceDescriber) Describe() (string, error) {
 	return s + strings.Join(mds, " "), nil
 }
 
+func (id *InterfaceDescriber) GetName() string {
+	return id.Name
+}
+
 func (id *InterfaceMethodDescriber) Describe() (string, error) {
 
 	tmpl := `method {{ if verbose }} declared {{ end }} called {{ prepare .Name }} {{ if verbose }} belonging to the {{ prepare .BelongsTo }} interface {{ end }} {{ .Args }} {{ .Returns }} `
@@ -127,7 +135,7 @@ func (id *InterfaceMethodDescriber) Describe() (string, error) {
 		Args      string
 		Returns   string
 	}{
-		Name:      id.FuncName,
+		Name:      id.Name,
 		BelongsTo: id.BelongsTo,
 		Args:      args,
 		Returns:   returns,
