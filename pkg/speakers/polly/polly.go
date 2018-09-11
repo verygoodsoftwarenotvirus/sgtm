@@ -1,13 +1,15 @@
 package polly
 
 import (
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/polly"
-
 	"io"
 	"os"
 	"strings"
+
+	"github.com/verygoodsoftwarenotvirus/sgtm/pkg/speakers"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/polly"
 )
 
 const (
@@ -27,6 +29,8 @@ var (
 		"salli":      aws.String("Salli"),
 	}
 )
+
+var _ speakers.Speaker = (*PollySpeaker)(nil)
 
 type PollySpeaker struct {
 	*polly.Polly

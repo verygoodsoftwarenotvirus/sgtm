@@ -2,6 +2,8 @@ package say
 
 import (
 	"os/exec"
+
+	"github.com/verygoodsoftwarenotvirus/sgtm/pkg/speakers"
 )
 
 const (
@@ -36,6 +38,8 @@ type SaySpeaker struct {
 	Language string
 	VoiceID  string
 }
+
+var _ speakers.Speaker = (*SaySpeaker)(nil)
 
 // New takes in a language and voice to create a SaySpeaker instance
 func New(language, voiceName string) *SaySpeaker {

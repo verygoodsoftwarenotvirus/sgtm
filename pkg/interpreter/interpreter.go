@@ -1,6 +1,7 @@
 package interpret
 
 import (
+	"fmt"
 	"go/ast"
 	"go/token"
 	"log"
@@ -54,6 +55,10 @@ func (i *interpreter) addToOutput(s string) {
 	i.output = append(i.output, clean(s))
 }
 
+func (i *interpreter) clear() {
+	i.output = []string{}
+}
+
 func (i *interpreter) handleImport(d *ast.GenDecl) {
 	s, _ := NewImportSpec(d).Describe()
 	i.addToOutput(s)
@@ -85,36 +90,48 @@ func (i *interpreter) handleType(d *ast.GenDecl) {
 }
 
 func (i *interpreter) InterpretFile(input *ast.File, chunks []string) error {
-	var err error
+	i.addToOutput(fmt.Sprintf("package %s", input.Name.Name))
+
 	chunksFound := map[string]string{}
 	for _, decl := range input.Decls {
 		switch x := decl.(type) {
 		case *ast.GenDecl:
 			switch x.Tok {
 			case token.IMPORT:
-				i := NewImportSpec(x)
-				chunksFound[i.GetName()], err = i.Describe()
+				is := NewImportSpec(x)
+				desc, err := is.Describe()
 				if err != nil {
 					return err
 				}
+				i.addToOutput(desc)
+				chunksFound[is.GetName()] = desc
 			case token.TYPE:
 				for _, spec := range x.Specs {
 					if ts, ok := spec.(*ast.TypeSpec); ok {
-						i := NewTypeDescriber(ts)
-						chunksFound[i.GetName()], err = i.Describe()
+						td := NewTypeDescriber(ts)
+						desc, err := td.Describe()
+
 						if err != nil {
 							return err
 						}
+						i.addToOutput(desc)
+						chunksFound[td.GetName()] = desc
 					}
 				}
 			}
 		case *ast.FuncDecl:
 			fd := NewFuncDecl(x)
-			chunksFound[fd.GetName()], err = fd.Describe()
+			desc, err := fd.Describe()
 			if err != nil {
 				return err
 			}
+			i.addToOutput(desc)
+			chunksFound[fd.GetName()] = desc
 		}
+	}
+
+	if chunks != nil && len(chunks) > 0 {
+		i.clear()
 	}
 
 	for _, chunk := range chunks {

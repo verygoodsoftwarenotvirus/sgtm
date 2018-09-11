@@ -31,7 +31,7 @@ func main() {
 		"log"
 	)
 
-	type Structure interface {
+	type SomeInterface interface {
 		DoSomeWork(arg string) (uintptr, error) 
 	}
 	
@@ -45,7 +45,8 @@ func main() {
 `
 	x := interpret.NewInterpreter(nil)
 	p := parseChunkOfCode(codeSample)
-	if err := x.InterpretFile(p, []string{"Structure"}); err != nil {
+	//if err := x.InterpretFile(p, nil); err != nil {
+	if err := x.InterpretFile(p, []string{"SomeInterface"}); err != nil {
 		log.Fatal(err)
 	}
 

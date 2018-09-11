@@ -5,17 +5,16 @@ import (
 	"os"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/aws/aws-sdk-go/service/polly"
+	"github.com/stretchr/testify/assert"
 )
-
 
 const exampleMP3Path = "pkg/speakers/polly.go/test_files/test.mp3"
 
 func loadExampleFile(t *testing.T) io.ReadCloser {
 	t.Helper()
 	f, err := os.Open(exampleMP3Path)
-	if err != jnil {
+	if err != nil {
 		t.Fatal(err)
 	}
 	return f
