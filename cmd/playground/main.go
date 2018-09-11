@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/verygoodsoftwarenotvirus/sgtm/pkg/interpreter"
+	"github.com/verygoodsoftwarenotvirus/sgtm/pkg/speakers/say"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -52,4 +53,7 @@ func main() {
 
 	y := x.RawOutput()
 	fmt.Println(y)
+
+	speaker := say.SaySpeaker{}
+	speaker.GenerateSpeech(y, "")
 }
