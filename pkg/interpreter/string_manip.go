@@ -31,7 +31,9 @@ func splitByCap(input string) []string {
 }
 
 func prepareName(name string) string {
-	return defaultStringReplacer.Replace(strings.Replace(strings.ToLower(strings.Join(splitByCap(name), " ")), `"`, ``, -1))
+	withoutQuotes := strings.Replace(name, `"`, ``, -1)
+
+	return defaultStringReplacer.Replace(strings.Join(splitByCap(withoutQuotes), " "))
 }
 
 func clean(s string) string {
@@ -48,6 +50,7 @@ var defaultStringReplacer = strings.NewReplacer(
 	"url", "you are ell",
 	"uri", "you are eye",
 	// data types
+	"ptr", "pointer",
 	"[]", "slice of",
 	"map[", "map of",
 	"bool", "boolean",
