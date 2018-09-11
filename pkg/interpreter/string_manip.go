@@ -3,6 +3,7 @@ package interpret
 import (
 	"regexp"
 	"strings"
+	"unicode"
 )
 
 var spaceStripper = regexp.MustCompile(`\s+`)
@@ -15,8 +16,22 @@ func startsWithVowel(s string) bool {
 		strings.HasPrefix(s, "u")
 }
 
+func splitByCap(input string) []string {
+	var words []string
+	l := 0
+	for s := input; s != ""; s = s[l:] {
+		l = strings.IndexFunc(s[1:], unicode.IsUpper) + 1
+		if l <= 0 {
+			l = len(s)
+		}
+		words = append(words, s[:l])
+	}
+	return words
+
+}
+
 func prepareName(name string) string {
-	return defaultStringReplacer.Replace(strings.Replace(strings.ToLower(name), `"`, ``, -1))
+	return defaultStringReplacer.Replace(strings.Replace(strings.ToLower(strings.Join(splitByCap(name), " ")), `"`, ``, -1))
 }
 
 func clean(s string) string {

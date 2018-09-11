@@ -34,12 +34,11 @@ func main() {
 		"log"
 	)
 
-	type Structure struct{
-		name, dog string
-		Version uint 
+	type Structure interface {
+		DoSomeWork(arg string) (uintptr, error) 
 	}
 
-	func whatever(a, url string, arbitrary bool) error {
+	func (f fart) whatever(a, url string, arbitrary bool) error {
 		return nil
 	}
 
@@ -53,5 +52,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fmt.Println(clean(x.RawOutput()))
+	y := clean(x.RawOutput())
+	fmt.Println(y)
 }

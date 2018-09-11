@@ -2,33 +2,43 @@ package interpret
 
 import (
 	"go/ast"
+	"strings"
 )
 
 type TypeDescriber struct {
-	original  *ast.TypeSpec
-	Verbosity verbosity
-	Type      string
-	Name      string
-	Fields    map[string][]string
+	original *ast.TypeSpec
+	Type     string
+	Name     string
+	Fields   map[string][]string
 }
 
-func NewTypeDescriber(in *ast.TypeSpec, v verbosity) *TypeDescriber {
+type InterfaceDescriber struct {
+	Name    string
+	Methods []InterfaceMethodDescriber
+}
+
+type InterfaceMethodDescriber struct {
+	FuncName string
+	Args     []ArgDesc
+	Returns  []ArgDesc
+}
+
+func NewTypeDescriber(in *ast.TypeSpec) Describer {
 	switch x := in.Type.(type) {
 	// NOTES: This is where we would handle aliases of any type, so if I write:
 	// 		type Something int
 	// it won't get passed here because we don't (and can't reliably) handle that case
 	case *ast.StructType:
 		td := &TypeDescriber{
-			original:  in,
-			Verbosity: v,
-			Type:      "struct",
-			Name:      in.Name.Name,
-			Fields:    map[string][]string{},
+			original: in,
+			Type:     "struct",
+			Name:     in.Name.Name,
+			Fields:   map[string][]string{},
 		}
 
 		for _, f := range x.Fields.List {
-			tn, ok1 := f.Type.(*ast.Ident)
-			if !ok1 {
+			tn, ok := f.Type.(*ast.Ident)
+			if !ok {
 				// I don't know what else to do when this happens, because I don't know if it can happen
 				panic("aaaaaaaaaaaaaaaaa")
 			}
@@ -42,12 +52,24 @@ func NewTypeDescriber(in *ast.TypeSpec, v verbosity) *TypeDescriber {
 		}
 
 		return td
+	case *ast.InterfaceType:
+		out := &InterfaceDescriber{}
+		for _, method := range x.Methods.List {
+			if ft, ok := method.Type.(*ast.FuncType); ok && len(method.Names) > 0 {
+				out.Methods = append(out.Methods, InterfaceMethodDescriber{
+					FuncName: method.Names[0].Name,
+					Returns:  parseArguments(ft.Results),
+					Args:     parseArguments(ft.Params),
+				})
+			}
+		}
+		return out
 	}
 	return nil
 }
 
-func (td *TypeDescriber) Describe() (string, error) {
-	tmpl := `type {{ .Name }} 
+func (td *TypeDescriber) Describe() (string, error) { /////////////////////////////////////////////////////// {{ else if eq (len $vars) 2 }} and
+	tmpl := `type {{ prepare .Name }} 
 	{{ if exported .Name }}
 		, which is exported,  
 	{{ end }} 
@@ -55,8 +77,55 @@ func (td *TypeDescriber) Describe() (string, error) {
 	{{ range $type, $vars := .Fields }} 
 		{{ range $i, $var := $vars }} {{ $var }} {{ if and (gt (len $vars) 1) (eq (sub 1 $i) (len $vars)) }}, {{ end }}{{ end }} which 
 		{{ if gt (len $vars) 1 }} are {{ else }} is a {{ end }}
-		{{ $type }}{{ if gt (len $vars) 1 }}s{{ end }} 
+		{{ prepare $type }}{{ if gt (len $vars) 1 }}s{{ end }} 
 	{{ end }}.`
 	s, err := RenderTemplate(tmpl, td)
 	return s, err
+}
+
+func (id *InterfaceDescriber) Describe() (string, error) {
+	tmpl := `interface called {{ prepare .Name }} {{ if verbose }} which has {{ len .Methods }} {{ if eq (len .Methods) 1 }} method {{ else }} methods {{ end }} {{ end }} . `
+
+	var mds []string
+	for _, m := range id.Methods {
+		s, err := m.Describe()
+		if err != nil {
+			return "", err
+		}
+		mds = append(mds, s)
+	}
+
+	s, err := RenderTemplate(tmpl, id)
+	if err != nil {
+		return "", err
+	}
+
+	return s + strings.Join(mds, " "), nil
+}
+
+func (id *InterfaceMethodDescriber) Describe() (string, error) {
+
+	tmpl := `method declared called {{ prepare .Name }} {{ .Args }} {{ .Returns }} `
+
+	args, err := describeArguments(id.Args)
+	if err != nil {
+		return "", err
+	}
+
+	returns, err := describeArguments(id.Returns)
+	if err != nil {
+		return "", err
+	}
+
+	x := struct {
+		Name    string
+		Args    string
+		Returns string
+	}{
+		Name:    id.FuncName,
+		Args:    args,
+		Returns: returns,
+	}
+
+	return RenderTemplate(tmpl, x)
 }

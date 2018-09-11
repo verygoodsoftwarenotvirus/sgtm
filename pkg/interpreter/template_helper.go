@@ -12,7 +12,8 @@ var defaultFuncMap = sprig.TxtFuncMap()
 
 func init() {
 	defaultFuncMap["startsWithVowel"] = startsWithVowel
-	defaultFuncMap["verbose"] = func(v verbosity) bool { return v == HighVerbosity }
+	defaultFuncMap["verbose"] = func() bool { return currentVerbosity == HighVerbosity }
+	defaultFuncMap["prepare"] = prepareName
 	defaultFuncMap["exported"] = func(s string) bool {
 		if len(s) == 0 {
 			return false

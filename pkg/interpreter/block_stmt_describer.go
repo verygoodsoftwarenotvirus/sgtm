@@ -7,13 +7,11 @@ import (
 type BlockStmt struct {
 	//original  *ast.BlockStmt
 	original []ast.Stmt
-	Verbosity verbosity
 }
 
-func NewBlockStmt(bs []ast.Stmt, v verbosity) *BlockStmt {
+func NewBlockStmt(bs []ast.Stmt) *BlockStmt {
 	blockStmt := &BlockStmt{
-		original:  bs,
-		Verbosity: v,
+		original: bs,
 	}
 
 	return blockStmt
