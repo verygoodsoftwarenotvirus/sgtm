@@ -11,7 +11,10 @@ import (
 
 type verbosity int
 
+var currentVerbosity = HighVerbosity
+
 const (
+	separator                 = "   &&&&&   "
 	NormalVerbosity verbosity = iota
 	HighVerbosity
 )
@@ -43,7 +46,7 @@ func (i *interpreter) RawOutput() string {
 }
 
 func (i *interpreter) addToOutput(s string) {
-	i.outputString += " " + s
+	i.outputString += "   " + s
 }
 
 func (i *interpreter) handleImport(d *ast.GenDecl) {
@@ -64,8 +67,14 @@ func (i *interpreter) handleFunction(f *ast.FuncDecl) error {
 func (i *interpreter) handleType(d *ast.GenDecl) {
 	for _, spec := range d.Specs {
 		if ts, ok := spec.(*ast.TypeSpec); ok {
-			s, _ := NewTypeDescriber(ts, i.verbosity).Describe()
-			i.addToOutput(s)
+			desc := NewTypeDescriber(ts)
+			if desc != nil {
+				s, err := desc.Describe()
+				if err != nil {
+					panic(err)
+				}
+				i.addToOutput(s)
+			}
 		}
 	}
 }
