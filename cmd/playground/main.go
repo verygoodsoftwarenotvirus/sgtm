@@ -2,15 +2,20 @@ package main
 
 import (
 	"fmt"
-	"github.com/verygoodsoftwarenotvirus/sgtm/pkg/interpreter"
 	"go/ast"
 	"go/parser"
 	"go/token"
 	"log"
 	"regexp"
+
+	"github.com/verygoodsoftwarenotvirus/sgtm/pkg/interpreter"
 )
 
 func use(...interface{}) {}
+
+func clean(s string) string {
+	return regexp.MustCompile(`\s+`).ReplaceAllString(s, " ")
+}
 
 func parseChunkOfCode(code string) *ast.File {
 	p, err := parser.ParseFile(token.NewFileSet(), "example.go", code, parser.AllErrors)
@@ -29,6 +34,11 @@ func main() {
 		"log"
 	)
 
+	type Structure struct{
+		name, dog string
+		Version uint 
+	}
+
 	func whatever(a, url string, arbitrary bool) error {
 		return nil
 	}
@@ -43,5 +53,5 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fmt.Println(regexp.MustCompile(`\s+`).ReplaceAllString(x.RawOutput(), " "))
+	fmt.Println(clean(x.RawOutput()))
 }

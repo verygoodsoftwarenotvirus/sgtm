@@ -12,7 +12,7 @@ import (
 type verbosity int
 
 const (
-	Normal verbosity = iota
+	NormalVerbosity verbosity = iota
 	HighVerbosity
 )
 
@@ -22,6 +22,7 @@ type Interpreter interface {
 }
 
 type interpreter struct {
+	verbosity    verbosity
 	fileset      *token.FileSet
 	debug        bool
 	outputString string
@@ -31,42 +32,28 @@ type interpreter struct {
 
 func NewInterpreter() Interpreter {
 	return &interpreter{
-		logger:   log.New(os.Stdout, "", log.LstdFlags),
-		replacer: defaultStringReplacer,
+		verbosity: NormalVerbosity,
+		logger:    log.New(os.Stdout, "", log.LstdFlags),
+		replacer:  defaultStringReplacer,
 	}
-}
-
-func (i *interpreter) addToOutput(s string) {
-	i.outputString += " " + s
 }
 
 func (i *interpreter) RawOutput() string {
 	return i.outputString
 }
 
+func (i *interpreter) addToOutput(s string) {
+	i.outputString += " " + s
+}
+
 func (i *interpreter) handleImport(d *ast.GenDecl) {
-	i.addToOutput("importing")
-	for ix, spec := range d.Specs {
-		if is, ok := spec.(*ast.ImportSpec); ok {
-			i.addToOutput(prepareName(is.Path.Value))
-			if is.Name != nil && is.Name.Name != "" && is.Name.Name != is.Path.Value {
-				i.addToOutput(fmt.Sprintf(" as %s ", is.Name.Name))
-			}
-			if ix != len(d.Specs)-1 {
-				i.addToOutput(" and ")
-			}
-		}
-	}
-	i.addToOutput(".")
+	s, _ := NewImportSpec(d, i.verbosity).Describe()
+	i.addToOutput(s)
 }
 
 func (i *interpreter) handleFunction(f *ast.FuncDecl) error {
-	funcDecl, err := NewFuncDecl(f)
+	s, err := NewFuncDecl(f, i.verbosity).Describe()
 	if err != nil {
-		return err
-	}
-
-	if s, err := funcDecl.Describe(); err != nil {
 		return err
 	} else {
 		i.addToOutput(s)
@@ -74,13 +61,25 @@ func (i *interpreter) handleFunction(f *ast.FuncDecl) error {
 	return nil
 }
 
+func (i *interpreter) handleType(d *ast.GenDecl) {
+	for _, spec := range d.Specs {
+		if ts, ok := spec.(*ast.TypeSpec); ok {
+			s, _ := NewTypeDescriber(ts, i.verbosity).Describe()
+			i.addToOutput(s)
+		}
+	}
+}
+
 func (i *interpreter) Interpret(input *ast.File) error {
 	i.addToOutput(fmt.Sprintf("package %s. ", input.Name.Name))
 	for _, decl := range input.Decls {
 		switch x := decl.(type) {
 		case *ast.GenDecl:
-			if x.Tok == token.IMPORT {
+			switch x.Tok {
+			case token.IMPORT:
 				i.handleImport(x)
+			case token.TYPE:
+				i.handleType(x)
 			}
 		case *ast.FuncDecl:
 			if err := i.handleFunction(x); err != nil {
