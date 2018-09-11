@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/spf13/cobra"
 	"github.com/verygoodsoftwarenotvirus/sgtm/pkg/interpreter"
+	"github.com/verygoodsoftwarenotvirus/sgtm/pkg/speakers/say"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -17,6 +18,7 @@ var (
 	verbose         bool
 	filePath        string
 	functionsToRead []string
+	speakerToRead	string
 	parts           map[string]struct{}
 
 	ErrInvalidFilePath     = errors.New("invalid file path")
@@ -63,17 +65,21 @@ func init() {
 		Long:  "reads a file of your choice",
 		RunE: func(*cobra.Command, []string) error {
 			x := interpret.NewInterpreter(functionsToRead)
-			if err := x.Interpret(parseCode()); err != nil {
+			if err := x.InterpretFile(parseCode(), functionsToRead); err != nil {
 				log.Fatal(err)
 			}
 
 			y := x.RawOutput()
 			fmt.Println(y)
+			speaker := say.New("en", speakerToRead)
+			speaker.GenerateSpeech(y, "")
 			return nil
 		},
 	}
-	readCommand.Flags().StringVarP(&filePath, "file", "l", "", "the file you want to read")
-	readCommand.Flags().StringArrayVarP(&functionsToRead, "function", "f", nil, "the functions you want to read from the file")
+	readCommand.Flags().StringVarP(&filePath, "file", "f", "", "the file you want to read")
+	readCommand.Flags().StringArrayVarP(&functionsToRead, "function", "p", nil, "the functions you want to read from the file")
+	readCommand.Flags().StringVarP(&speakerToRead, "speaker", "s", "Alex", "the speaker you want to read")
+
 
 	rootCmd.AddCommand(readCommand)
 }

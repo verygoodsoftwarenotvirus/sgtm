@@ -1,9 +1,8 @@
 package say
 
 import (
-	"os/exec"
-
 	"github.com/verygoodsoftwarenotvirus/sgtm/pkg/speakers"
+	"os/exec"
 )
 
 const (
@@ -57,7 +56,7 @@ func New(language, voiceName string) *SaySpeaker {
 
 // GenerateSpeech takes in a string and outputs Synthesized Speech and possibly an error.
 func (ss *SaySpeaker) GenerateSpeech(text, fileName string) error {
-	cmd := exec.Command("say", text)
+	cmd := exec.Command("say", "-v", ss.VoiceID,  text)
 	error := cmd.Run()
 	if error != nil {
 		return error
