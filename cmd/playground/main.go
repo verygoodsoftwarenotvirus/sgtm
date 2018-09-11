@@ -2,16 +2,13 @@ package main
 
 import (
 	"fmt"
+	"github.com/verygoodsoftwarenotvirus/sgtm/pkg/interpreter"
 	"go/ast"
 	"go/parser"
 	"go/token"
 	"log"
 	"regexp"
-
-	"github.com/verygoodsoftwarenotvirus/sgtm/pkg/interpreter"
 )
-
-func use(...interface{}) {}
 
 func clean(s string) string {
 	return regexp.MustCompile(`\s+`).ReplaceAllString(s, " ")
@@ -52,6 +49,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	y := clean(x.RawOutput())
+	y := x.RawOutput()
 	fmt.Println(y)
 }

@@ -14,7 +14,6 @@ type verbosity int
 var currentVerbosity = HighVerbosity
 
 const (
-	separator                 = "   &&&&&   "
 	NormalVerbosity verbosity = iota
 	HighVerbosity
 )
@@ -25,12 +24,12 @@ type Interpreter interface {
 }
 
 type interpreter struct {
-	verbosity    verbosity
-	fileset      *token.FileSet
-	debug        bool
-	outputString string
-	logger       *log.Logger
-	replacer     *strings.Replacer
+	output    []string
+	verbosity verbosity
+	fileset   *token.FileSet
+	debug     bool
+	logger    *log.Logger
+	replacer  *strings.Replacer
 }
 
 func NewInterpreter() Interpreter {
@@ -42,11 +41,11 @@ func NewInterpreter() Interpreter {
 }
 
 func (i *interpreter) RawOutput() string {
-	return i.outputString
+	return strings.Join(i.output, ".\n")
 }
 
 func (i *interpreter) addToOutput(s string) {
-	i.outputString += "   " + s
+	i.output = append(i.output, clean(s))
 }
 
 func (i *interpreter) handleImport(d *ast.GenDecl) {

@@ -84,7 +84,7 @@ func describeReceiver(in *ReceiverData) (string, error) {
 	}
 
 	tmpl := `
-	which is attached to {{ if .Pointer }} a pointer to {{ end }} {{ prepare .TypeName }} {{ if verbose }} called {{ .Name }} {{ end }}
+	which is attached to {{ if .Pointer }} a pointer to {{ else }} an instance of {{ end }} {{ prepare .TypeName }} {{ if verbose }} called {{ .Name }} {{ end }}
 
 	`
 

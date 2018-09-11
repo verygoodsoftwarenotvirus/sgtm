@@ -18,9 +18,10 @@ type InterfaceDescriber struct {
 }
 
 type InterfaceMethodDescriber struct {
-	FuncName string
-	Args     []ArgDesc
-	Returns  []ArgDesc
+	BelongsTo string
+	FuncName  string
+	Args      []ArgDesc
+	Returns   []ArgDesc
 }
 
 func NewTypeDescriber(in *ast.TypeSpec) Describer {
@@ -53,13 +54,16 @@ func NewTypeDescriber(in *ast.TypeSpec) Describer {
 
 		return td
 	case *ast.InterfaceType:
-		out := &InterfaceDescriber{}
+		out := &InterfaceDescriber{
+			Name: in.Name.Name,
+		}
 		for _, method := range x.Methods.List {
 			if ft, ok := method.Type.(*ast.FuncType); ok && len(method.Names) > 0 {
 				out.Methods = append(out.Methods, InterfaceMethodDescriber{
-					FuncName: method.Names[0].Name,
-					Returns:  parseArguments(ft.Results),
-					Args:     parseArguments(ft.Params),
+					BelongsTo: out.Name,
+					FuncName:  method.Names[0].Name,
+					Returns:   parseArguments(ft.Results),
+					Args:      parseArguments(ft.Params),
 				})
 			}
 		}
@@ -105,26 +109,28 @@ func (id *InterfaceDescriber) Describe() (string, error) {
 
 func (id *InterfaceMethodDescriber) Describe() (string, error) {
 
-	tmpl := `method declared called {{ prepare .Name }} {{ .Args }} {{ .Returns }} `
+	tmpl := `method {{ if verbose }} declared {{ end }} called {{ prepare .Name }} {{ if verbose }} belonging to the {{ prepare .BelongsTo }} interface {{ end }} {{ .Args }} {{ .Returns }} `
 
 	args, err := describeArguments(id.Args)
 	if err != nil {
 		return "", err
 	}
 
-	returns, err := describeArguments(id.Returns)
+	returns, err := describeReturns(id.Returns)
 	if err != nil {
 		return "", err
 	}
 
 	x := struct {
-		Name    string
-		Args    string
-		Returns string
+		Name      string
+		BelongsTo string
+		Args      string
+		Returns   string
 	}{
-		Name:    id.FuncName,
-		Args:    args,
-		Returns: returns,
+		Name:      id.FuncName,
+		BelongsTo: id.BelongsTo,
+		Args:      args,
+		Returns:   returns,
 	}
 
 	return RenderTemplate(tmpl, x)
