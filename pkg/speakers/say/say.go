@@ -6,14 +6,14 @@ import (
 )
 
 const (
-	defaultLanguage = "en"
-	defaultVoice    = "alex"
+	DefaultLanguage = "en"
+	DefaultVoice    = "alex"
 )
 
 var (
 	// acceptableVoices is the set of voices currently supported by SGTM. To see all voices available using Say, execute "say --voice=?"
 	englishVoices = map[string]string{
-		defaultVoice: "Alex",
+		DefaultVoice: "Alex",
 		"daniel":     "Daniel",
 		"fiona":      "Fiona",
 		"fred":       "Fred",
@@ -43,10 +43,12 @@ var _ speakers.Speaker = (*SaySpeaker)(nil)
 // New takes in a language and voice to create a SaySpeaker instance
 func New(language, voiceName string) *SaySpeaker {
 	var voice string
-	voice, ok := acceptableVoices[language][voiceName]
+	voices, ok := acceptableVoices[language]
 	if !ok {
-		language = defaultLanguage
-		voice = acceptableVoices[defaultLanguage][defaultVoice]
+		language = DefaultLanguage
+	}
+	if _, ok := voices[voiceName]; !ok {
+		voice = DefaultVoice
 	}
 	return &SaySpeaker{
 		Language: language,
@@ -56,7 +58,7 @@ func New(language, voiceName string) *SaySpeaker {
 
 // GenerateSpeech takes in a string and outputs Synthesized Speech and possibly an error.
 func (ss *SaySpeaker) GenerateSpeech(text, fileName string) error {
-	cmd := exec.Command("say", "-v", ss.VoiceID,  text)
+	cmd := exec.Command("say", "-v", ss.VoiceID, text)
 	error := cmd.Run()
 	if error != nil {
 		return error

@@ -174,6 +174,8 @@ func describeBody(in *ast.FuncDecl) (out string, err error) {
 					return out, err
 				}
 				out += o
+			default:
+				println()
 			}
 		}
 	}

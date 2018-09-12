@@ -34,3 +34,15 @@ func RenderTemplate(tmpl string, data interface{}) (string, error) {
 	}
 	return tpl.String(), nil
 }
+
+var _ Describer = (*noopDescriber)(nil)
+
+type noopDescriber struct{}
+
+func (n *noopDescriber) GetName() string {
+	return ""
+}
+
+func (n *noopDescriber) Describe() (string, error) {
+	return "", nil
+}

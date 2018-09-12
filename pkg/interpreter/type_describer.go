@@ -69,7 +69,7 @@ func NewTypeDescriber(in *ast.TypeSpec) Describer {
 		}
 		return out
 	}
-	return nil
+	return &noopDescriber{}
 }
 
 func (td *TypeDescriber) GetName() string {
@@ -117,7 +117,7 @@ func (id *InterfaceDescriber) GetName() string {
 
 func (id *InterfaceMethodDescriber) Describe() (string, error) {
 
-	tmpl := `method {{ if verbose }} declared {{ end }} called {{ prepare .Name }} {{ if verbose }} belonging to the {{ prepare .BelongsTo }} interface {{ end }} {{ .Args }} {{ .Returns }} `
+	tmpl := `method {{ if verbose }} declared {{ end }} called {{ prepare .Name }} {{ if verbose }} belonging to the {{ prepare .BelongsTo }} interface {{ end }} {{ .Args }} {{ .Returns }} .`
 
 	args, err := describeArguments(id.Args)
 	if err != nil {

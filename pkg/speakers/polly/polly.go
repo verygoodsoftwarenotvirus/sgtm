@@ -13,13 +13,13 @@ import (
 )
 
 const (
-	defaultVoice = "joanna"
+	DefaultVoice = "joanna"
 )
 
 var (
 	// acceptableVoices is the set of voices currently supported by SGTM. More AWS Polly voices can be found here: https://docs.aws.amazon.com/polly/latest/dg/voicelist.html.
 	acceptableVoices = map[string]*string{
-		defaultVoice: aws.String("Joanna"),
+		DefaultVoice: aws.String("Joanna"),
 		"joey":       aws.String("Joey"),
 		"justin":     aws.String("Justin"),
 		"matthew":    aws.String("Matthew"),
@@ -42,7 +42,7 @@ func New(voiceName string) *PollySpeaker {
 	var voice *string
 	voice, ok := acceptableVoices[voiceName]
 	if !ok {
-		voice = acceptableVoices[defaultVoice]
+		voice = acceptableVoices[DefaultVoice]
 	}
 
 	// Initialize a session that the SDK uses to load
