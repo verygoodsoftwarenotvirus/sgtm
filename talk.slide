@@ -1,0 +1,64 @@
+SGTM
+Hackathon September 2018
+
+Jeffrey Dorrycott
+Daniel Savo
+Josh Shuster
+
+* Purpose
+
+.image presentation/autofocus.gif
+
+.link https://www.youtube.com/watch?v=xwjvufcJK-Q Using mac voiceover
+
+.link https://www.youtube.com/watch?v=sKJkloZcAAs Talk in question
+
+* Proposal
+
+Use Go's built-in `ast` package to parse some Go code and generate human-language descriptions. So this:
+
+    package main
+
+    import (
+        "fmt"
+        "time"
+    )
+
+    func main() {
+        fmt.Printf("Hello world! The current time is %v", time.Now())
+    }
+
+becomes something like
+
+    "package main, importing 'fmt' and 'time', main function body first calls
+    fmt.Printf with 'Hello world the current time is time.Now'"
+
+* Features we accomplished
+
+- notion of a boolean verbosity ( `-v` / `--verbose` )
+- reading of any number of parts
+- common substitutions ("fmt" => "format")
+- support for multiple "providers" (OSX `say`, AWS Polly, etc)
+
+* What we didn't get done
+
+- internationalization (hard)
+- a lot of types
+
+* Demos
+
+* Hello world
+
+.code example_files/hello_world.go
+
+* Slightly more complicated
+
+.code example_files/slightly_more_complicated.go
+
+* Vector Example
+
+.code example_files/grand_goal.go
+
+* Introspective
+
+.code presentation/part.go

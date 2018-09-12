@@ -58,10 +58,5 @@ func New(language, voiceName string) *SaySpeaker {
 
 // GenerateSpeech takes in a string and outputs Synthesized Speech and possibly an error.
 func (ss *SaySpeaker) GenerateSpeech(text, fileName string) error {
-	cmd := exec.Command("say", "-v", ss.VoiceID, text)
-	error := cmd.Run()
-	if error != nil {
-		return error
-	}
-	return nil
+	return exec.Command("say", "-v", ss.VoiceID, text).Run()
 }

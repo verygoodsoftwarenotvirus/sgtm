@@ -38,7 +38,7 @@ func (i *ImportSpec) GetName() string {
 }
 
 func (i *ImportSpec) Describe() (string, error) {
-	tmpl := `importing {{ range $alias, $path := $.Imports }} {{ $path }} {{ if and (ne $alias "") (ne $alias $path) }} as {{ $path }}{{ end}}{{ if gt (len $.Imports) 2 }}, {{ else if eq (len $.Imports) 2 }} and {{ end }} {{ end}}. `
+	tmpl := `import {{ range $alias, $path := $.Imports }} {{ $path }} {{ if and (ne $alias "") (ne $alias $path) }} as {{ $path }}{{ end}}{{ if gt (len $.Imports) 2 }}, {{ else if eq (len $.Imports) 2 }} and {{ end }} {{ end}}. `
 	s, err := RenderTemplate(tmpl, i)
 	s = strings.Replace(strings.TrimSpace(s), "and  .", ".", 1) // gotta get rid of the excess `and` at the end
 	return s, err

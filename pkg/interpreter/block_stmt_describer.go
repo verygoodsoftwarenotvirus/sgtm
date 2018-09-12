@@ -1,6 +1,7 @@
 package interpret
 
 import (
+	"fmt"
 	"go/ast"
 )
 
@@ -16,7 +17,7 @@ func NewStatementParser(bs []ast.Stmt) *StatementParser {
 	return sp
 }
 
-func (i *interpreter) parseExprStmt(in *ast.ExprStmt) (string, error) {
+func parseExprStmt(in *ast.ExprStmt) (string, error) {
 	switch e := in.X.(type) {
 	case *ast.CallExpr:
 		// parse call expr
@@ -25,18 +26,27 @@ func (i *interpreter) parseExprStmt(in *ast.ExprStmt) (string, error) {
 	return "", nil
 }
 
-func (i *interpreter) parseAssignStmt(in *ast.AssignStmt) (string, error) {
+func parseAssignStmt(in *ast.AssignStmt) (out string, err error) {
 	var leftHandSide []string
-	for i := range in.Lhs {
-		if l, ok := in.Lhs[i].(*ast.Ident); ok {
+	for _, v := range in.Lhs {
+		switch l := v.(type) {
+		case *ast.Ident:
 			varName := l.Name
 			leftHandSide = append(leftHandSide, varName)
+		case *ast.SelectorExpr:
+			if m, ok := l.X.(*ast.Ident); ok {
+				varName := fmt.Sprintf("%s dot %s", prepareName(m.Name), prepareName(l.Sel.Name))
+				leftHandSide = append(leftHandSide, varName)
+			} else {
+				print()
+			}
+		default:
+			print()
 		}
 	}
 
-	//var funcName string
 	for j := range in.Rhs {
-		switch in.Rhs[j].(type) {
+		switch k := in.Rhs[j].(type) {
 		case *ast.CallExpr:
 			/*
 				Alright ya'll, here's where it gets real: this is a hackathon project, and while the Go programming
@@ -45,60 +55,65 @@ func (i *interpreter) parseAssignStmt(in *ast.AssignStmt) (string, error) {
 				such function call for the sake of time and simplicity. Rob Pike, you won't read this, but I hope you
 				appreciate the sentiments here.
 			*/
-			x := in.Rhs[0].(*ast.CallExpr)
-			var args []ArgDesc
-			for _, a := range x.Args {
-				switch b := a.(type) {
-				case *ast.Ident:
-					ad := ArgDesc{
-						Names: []string{b.Name},
-					}
-					args = append(args, ad)
-				case *ast.BasicLit:
-					ad := ArgDesc{
-						Literal: true,
-						Type:    typeTokenMap[b.Kind],
-						Value:   prepareName(b.Value),
-					}
-					args = append(args, ad)
-				}
+			if len(in.Lhs) != len(in.Rhs) {
+				println()
 			}
 
-			return describeCallExpr(x.Fun.(*ast.Ident).Name, args, leftHandSide)
+			var (
+				args     []ArgDesc
+				funcName string
+			)
+			for i, x := range in.Rhs {
+				switch y := x.(type) {
+				case *ast.CallExpr:
+					switch z := y.Fun.(type) {
+					case *ast.Ident:
+						funcName = z.Name
+						for _, a := range y.Args {
+							switch b := a.(type) {
+							case *ast.Ident:
+								ad := ArgDesc{
+									Names: []string{b.Name},
+								}
+								args = append(args, ad)
+							case *ast.BasicLit:
+								ad := ArgDesc{
+									Literal: true,
+									Type:    typeTokenMap[b.Kind],
+									Value:   prepareName(b.Value),
+								}
+								if len(in.Rhs) == len(in.Lhs) {
+									ad.Names = append(ad.Names, leftHandSide[i])
+								}
+
+								args = append(args, ad)
+							}
+						}
+					}
+				}
+			}
+			s, err := describeCallExpr(funcName, args, leftHandSide)
+			if err != nil {
+				return "", err
+			}
+			out += s
+
+		case *ast.CompositeLit:
+			var varName string
+			if leftHandSide != nil && len(in.Rhs) == len(in.Lhs) {
+				if len(leftHandSide)-1 < j {
+					println()
+				}
+
+				varName = leftHandSide[j]
+			}
+
+			s, err := NewCompositeLiteralDescriber(k, varName).Describe()
+			if err != nil {
+				return "", err
+			}
+			out += s
 		}
 	}
-	return "", nil
-}
-
-func describeCallExpr(name string, args []ArgDesc, returns []string) (string, error) {
-	tmpl := `
-	a call to {{ .FuncName }}
-		with arguments
-		{{ $argCount := sub (len .Args) 1 }}
-		{{ range $i, $arg := .Args }}
-			{{ if $arg.Literal }}
-				{{ if startsWithVowel $arg.Type }}an {{ else }}a {{ end }} {{ prepare $arg.Type }} literal with the value {{ prepare $arg.Value }}
-			{{ else }}
-				{{ range $_, $n := $arg.Names }} {{ $n }} {{ end }}
-			{{ end }}
-			{{ if ne $argCount $i }} and {{ end }}
-		{{ end }}.
-	assigning result{{ if gt (len $.Args) 1 }}s{{ end }} to
-		{{ $varCount := sub (len .VarNames) 1 }}
-		{{ range $i, $arg := .VarNames }}
-			{{ $arg }} {{ if ne $varCount $i }} and {{ end }}
-		{{ end }}`
-
-	x := struct {
-		FuncName string
-		Args     []ArgDesc
-		VarNames []string
-	}{
-		FuncName: name,
-		Args:     args,
-		VarNames: returns,
-	}
-
-	s, err := RenderTemplate(tmpl, x)
-	return s, err
+	return
 }

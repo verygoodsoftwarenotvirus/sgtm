@@ -30,7 +30,7 @@ var (
 	voiceService string
 	speaker         speakers.Speaker
 	parts           map[string]struct{}
-	verbose         bool
+	verbose, debug  bool
 	functionsToRead []string
 
 	defaultSpeakers = map[string]string{
@@ -74,35 +74,40 @@ func openFile() (string, error) {
 }
 
 func init() {
-	rootCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Help message for toggle")
+	rootCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "do you want overly wordy output or not")
+	rootCmd.Flags().BoolVarP(&debug, "debug", "d", false, "print instead of actually playing sounds")
 
 	readCommand := &cobra.Command{
 		Use:   "read",
 		Short: "",
 		Long:  "reads a file (or parts of a file) of your choice",
 		RunE: func(*cobra.Command, []string) error {
-			x := interpret.NewInterpreter(functionsToRead)
+			x := interpret.NewInterpreter(functionsToRead, verbose)
 			if err := x.InterpretFile(parseCode(), functionsToRead); err != nil {
 				log.Fatal(err)
 			}
 
 			y := x.RawOutput()
-			fmt.Println(y)
+
+			if debug {
+				fmt.Println(y)
+				return nil
+			}
 
 			switch strings.ToLower(voiceService) {
 			case amazonVoiceService:
 				speaker = polly.New(speakerToRead)
-				return speaker.GenerateSpeech(y, "")
+				return speaker.GenerateSpeech(y, filePath)
 			default:
 				speaker = say.New(say.DefaultLanguage, speakerToRead)
-				return speaker.GenerateSpeech(y, "")
+				return speaker.GenerateSpeech(y, filePath)
 			}
 		},
 	}
 	readCommand.Flags().StringVarP(&filePath, "file", "f", "", "the file you want to read")
 	readCommand.Flags().StringArrayVarP(&functionsToRead, "part", "p", nil, "the functions you want to read from the file")
-	readCommand.Flags().StringVarP(&voiceService, "voice", "v", defaultVoiceService, "the TTS service you want to use")
-	readCommand.Flags().StringVarP(&speakerToRead, "speaker", "s", say.DefaultVoice, "the speaker you want to read")
+	readCommand.Flags().StringVarP(&voiceService, "voice-service", "k", say.DefaultVoice, "the TTS service you want to use")
+	readCommand.Flags().StringVarP(&speakerToRead, "speaker", "s", defaultVoiceService, "the speaker you want to read")
 
 	rootCmd.AddCommand(readCommand)
 }

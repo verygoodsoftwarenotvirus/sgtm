@@ -1,13 +1,15 @@
 package interpret
 
 import (
-	"errors"
+	"fmt"
 	"go/ast"
 )
 
 type ArgDesc struct {
 	Literal bool
+	Pointer bool
 	Type    string
+	Name    string
 	Names   []string
 	Value   string
 }
@@ -57,17 +59,32 @@ func parseArguments(in *ast.FieldList) []ArgDesc {
 	var out []ArgDesc
 	if in != nil {
 		for _, t := range in.List {
-			paramType, ok := t.Type.(*ast.Ident)
-			if !ok {
-				panic(errors.New("invalid param list?"))
-			}
+			switch u := t.Type.(type) {
+			case *ast.Ident:
+				var names []string
+				for _, n := range t.Names {
+					names = append(names, prepareName(n.Name))
+				}
 
-			var names []string
-			for _, n := range t.Names {
-				names = append(names, prepareName(n.Name))
+				out = append(out, ArgDesc{Type: prepareName(u.Name), Names: names})
+			case *ast.StarExpr:
+				switch v := u.X.(type) {
+				case *ast.Ident:
+					name := fmt.Sprintf("%s dot %s", v.Name, v.Name)
+					out = append(out, ArgDesc{Type: prepareName(name), Names: []string{"REPLACE ME"}})
+				case *ast.SelectorExpr:
+					if w, ok := v.X.(*ast.Ident); ok {
+						name := fmt.Sprintf("%s dot %s", w.Name, v.Sel.Name)
+						out = append(out, ArgDesc{Type: prepareName(name), Pointer: true, Names: []string{"REPLACE ME"}})
+					}
+				default:
+					println()
+				}
+			case *ast.ArrayType:
+				println("IMPLEMENT ME")
+			default:
+				print()
 			}
-
-			out = append(out, ArgDesc{Type: prepareName(paramType.Name), Names: names})
 		}
 	}
 	return out
@@ -85,7 +102,7 @@ func describeReceiver(in *ReceiverData) (string, error) {
 	}
 
 	tmpl := `
-	which is attached to {{ if .Pointer }} a pointer to {{ else }} an instance of {{ end }} {{ prepare .TypeName }} {{ if verbose }} called {{ .Name }} {{ end }}
+	, which is attached to {{ if .Pointer }} a pointer to {{ else }} an instance of {{ end }} {{ prepare .TypeName }} {{ if verbose }} called {{ .Name }} {{ end }} .
 
 	`
 
@@ -99,7 +116,7 @@ func describeArguments(in []ArgDesc) (string, error) {
 		{{ range $i, $arg := .Arguments}}
 			{{ if ne $i 0 }} and {{ end }}
 			{{ if lt (len $arg.Names) 2 }}
-				{{ if startsWithVowel $arg.Type }} an {{ else }} a {{ end }} {{ $arg.Type }}
+				{{ if and (startsWithVowel $arg.Type) (not $arg.Pointer) }} an {{ else }} a {{ if $arg.Pointer }} pointer to {{ end }}{{ end }} {{ $arg.Type }}
 			{{ else }}
 				{{ len $arg.Names }} {{ $arg.Type }}s
 				{{ if verbose }} called
@@ -163,19 +180,25 @@ func describeBody(in *ast.FuncDecl) (out string, err error) {
 		for _, s := range in.Body.List {
 			switch x := s.(type) {
 			case *ast.AssignStmt:
-				o, err := defaultInterpreter.parseAssignStmt(x)
+				o, err := parseAssignStmt(x)
 				if err != nil {
 					return out, err
 				}
 				out += o
 			case *ast.ExprStmt:
-				o, err := defaultInterpreter.parseExprStmt(x)
+				o, err := parseExprStmt(x)
+				if err != nil {
+					return out, err
+				}
+				out += o
+			case *ast.ReturnStmt:
+				o, err := NewReturnDescriber(x).Describe()
 				if err != nil {
 					return out, err
 				}
 				out += o
 			default:
-				println()
+				print()
 			}
 		}
 	}
@@ -207,7 +230,7 @@ func (f FuncDecl) Describe() (string, error) {
 		return "", err
 	}
 
-	tmpl := `function declared called {{ prepare .Name }} {{ .Receivers }} {{ .Args }} {{ .Returns }}. The body contains {{ .Body }} `
+	tmpl := `function declared called {{ prepare .Name }} {{ .Receivers }} {{ .Args }} {{ .Returns }}. {{ if ne (len .Body) 0 }} The body contains {{ .Body }} {{ end }}`
 
 	x := struct {
 		Name      string

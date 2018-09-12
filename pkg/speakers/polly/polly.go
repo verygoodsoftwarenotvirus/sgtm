@@ -1,11 +1,12 @@
 package polly
 
 import (
-	"io"
-	"os"
-	"strings"
-
 	"github.com/verygoodsoftwarenotvirus/sgtm/pkg/speakers"
+	"io"
+	"io/ioutil"
+	"os"
+	"os/exec"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -34,22 +35,27 @@ var _ speakers.Speaker = (*PollySpeaker)(nil)
 
 type PollySpeaker struct {
 	*polly.Polly
-	VoiceID *string
+	savedFile *os.File
+	VoiceID   *string
 }
 
 // New creates an AWS Polly session. It takes in a voiceName string to determine which speaker to use.
 func New(voiceName string) *PollySpeaker {
 	var voice *string
-	voice, ok := acceptableVoices[voiceName]
+	voice, ok := acceptableVoices[strings.ToLower(voiceName)]
 	if !ok {
 		voice = acceptableVoices[DefaultVoice]
 	}
 
 	// Initialize a session that the SDK uses to load
 	// credentials from the shared credentials file. (~/.aws/credentials).
-	sess := session.Must(session.NewSessionWithOptions(session.Options{
-		SharedConfigState: session.SharedConfigEnable,
-	}))
+	sess := session.Must(
+		session.NewSessionWithOptions(
+			session.Options{
+				SharedConfigState: session.SharedConfigEnable,
+			},
+		),
+	)
 
 	return &PollySpeaker{
 		Polly:   polly.New(sess),
@@ -64,25 +70,34 @@ func (ps *PollySpeaker) GenerateSpeech(s string, fileName string) error {
 	if err != nil {
 		return err
 	}
-	return ps.saveAsMP3(fileName, output)
-}
 
-// SaveAsMP3 takes a file name and the synthesized speech from GenerateSpeech and saves a MP3 file of the speech to that location.
-func (ps *PollySpeaker) saveAsMP3(fileName string, output *polly.SynthesizeSpeechOutput) error {
-	// Save as MP3
-	names := strings.Split(fileName, ".")
-	name := names[0]
-	mp3File := name + ".mp3"
-
-	outFile, err := os.Create(mp3File)
+	path, err := ps.saveAsMP3(fileName, output)
 	if err != nil {
 		return err
 	}
 
-	defer outFile.Close()
-	_, err = io.Copy(outFile, output.AudioStream)
-	if err != nil {
+	if err := exec.Command("afplay", path).Run(); err != nil {
+		return err
+	}
+
+	if err := os.Remove(path); err != nil {
 		return err
 	}
 	return nil
+}
+
+// SaveAsMP3 takes a file name and the synthesized speech from GenerateSpeech and saves a MP3 file of the speech to that location.
+func (ps *PollySpeaker) saveAsMP3(fileName string, output *polly.SynthesizeSpeechOutput) (string, error) {
+	// Save as MP3
+	f, err := ioutil.TempFile("", "polly")
+	if err != nil {
+		return "", err
+	}
+
+	defer f.Close()
+	_, err = io.Copy(f, output.AudioStream)
+	if err != nil {
+		return "", err
+	}
+	return f.Name(), nil
 }

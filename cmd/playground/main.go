@@ -33,6 +33,23 @@ func parseExampleFile(filename string) *ast.File {
 }
 
 const (
+	exampleCode = `
+package main
+
+import(
+	"fmt"
+	"log"
+)
+
+func (s *something) whatever(thing string, stuff bool) error {
+	return nil
+}
+
+func main() {
+	fmt.Println("hello")
+}
+
+`
 	codeSample = `
 	package main
 
@@ -67,7 +84,7 @@ func main() {
 		p        *ast.File
 	)
 
-	x := interpret.NewInterpreter(nil)
+	x := interpret.NewInterpreter(nil, true)
 
 	if filename != "" {
 		p = parseExampleFile(filename)

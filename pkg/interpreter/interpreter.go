@@ -11,7 +11,7 @@ import (
 
 type verbosity int
 
-var currentVerbosity = HighVerbosity
+var currentVerbosity verbosity
 
 const (
 	NormalVerbosity verbosity = iota
@@ -35,7 +35,7 @@ type interpreter struct {
 	replacer    *strings.Replacer
 }
 
-func NewInterpreter(thingsToRead []string) Interpreter {
+func NewInterpreter(thingsToRead []string, verbose bool) Interpreter {
 	partsToRead := map[string]struct{}{}
 	for _, p := range thingsToRead {
 		partsToRead[p] = struct{}{}
@@ -43,15 +43,20 @@ func NewInterpreter(thingsToRead []string) Interpreter {
 
 	defaultInterpreter = &interpreter{
 		partsToRead: partsToRead,
-		verbosity:   NormalVerbosity,
 		logger:      log.New(os.Stdout, "", log.LstdFlags),
 		replacer:    defaultStringReplacer,
 	}
+
+	currentVerbosity = NormalVerbosity
+	if verbose {
+		currentVerbosity = HighVerbosity
+	}
+
 	return defaultInterpreter
 }
 
 func (i *interpreter) RawOutput() string {
-	return strings.Join(i.output, ".\n")
+	return replace(strings.Join(i.output, ".\n"))
 }
 
 func (i *interpreter) addToOutput(s string) {

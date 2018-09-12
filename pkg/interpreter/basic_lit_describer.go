@@ -29,5 +29,20 @@ func (d *BasicLitDescriber) GetName() string {
 }
 
 func (d *BasicLitDescriber) Describe() (string, error) {
-	return "", nil
+	tmpl := `
+	{{ if verbose }}
+		{{ if startsWithVowel .Type }} an {{ else }} a {{ end }} 
+		{{ .Type }} literal with a value of 
+	{{ end }} {{ .Value }}
+	`
+
+	x := ArgDesc{
+		Literal: true,
+		Type:    typeTokenMap[d.original.Kind],
+		Value:   d.original.Value,
+	}
+
+	s, err := RenderTemplate(tmpl, x)
+
+	return s, err
 }

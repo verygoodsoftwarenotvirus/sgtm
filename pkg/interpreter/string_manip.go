@@ -35,8 +35,9 @@ func prepareName(name string) string {
 	second := splitByCap(first)
 	third := strings.Join(second, " ")
 	fourth := replace(strings.ToLower(third))
+	fifth := defaultStringReplacer.Replace(fourth)
 
-	return fourth
+	return fifth
 }
 
 func clean(s string) string {
@@ -46,6 +47,8 @@ func clean(s string) string {
 func replace(s string) string {
 	dataTypeReplacements := map[string]string{
 		// data types
+		`\\n`:          " newline ",
+		`^\_$`:         " underscore ",
 		"^bool$":       " boolean ",
 		"^byte$":       " bite ",
 		"^complex128$": " 128-bit complex number ",
@@ -65,8 +68,8 @@ func replace(s string) string {
 		"^uintptr$":    " unsigned integer pointer ",
 	}
 
-	for o, n := range dataTypeReplacements {
-		s = regexp.MustCompile(o).ReplaceAllString(s, n)
+	for old, nu := range dataTypeReplacements {
+		s = regexp.MustCompile(old).ReplaceAllString(s, nu)
 	}
 
 	return defaultStringReplacer.Replace(s)
@@ -76,10 +79,12 @@ var defaultStringReplacer = strings.NewReplacer(
 	// basic things
 	"fmt", " format",
 	"sprintf", " sprint f ",
+	"strconv", " string conversions ",
 	"println", " print line ",
 	"printf", " print f ",
 	// common initialisms
-	"api", " a p i ",
+	"api", " ay pee eye ",
+	"ast", " ay ess tee ",
 	"url", " you are ell ",
 	"uri", " you are eye ",
 )

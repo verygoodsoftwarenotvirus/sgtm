@@ -44,18 +44,17 @@ func NewTypeDescriber(in *ast.TypeSpec) Describer {
 		}
 
 		for _, f := range x.Fields.List {
-			tn, ok := f.Type.(*ast.Ident)
-			if !ok {
-				// I don't know what else to do when this happens, because I don't know if it can happen
-				panic("aaaaaaaaaaaaaaaaa")
-			}
+			switch g := f.Type.(type) {
+			case *ast.Ident:
+				var names []string
+				for _, n := range f.Names {
+					names = append(names, n.Name)
+				}
 
-			var names []string
-			for _, n := range f.Names {
-				names = append(names, n.Name)
+				td.Fields[g.Name] = append(td.Fields[g.Name], names...)
+			default:
+				print()
 			}
-
-			td.Fields[tn.Name] = append(td.Fields[tn.Name], names...)
 		}
 
 		return td
@@ -64,13 +63,17 @@ func NewTypeDescriber(in *ast.TypeSpec) Describer {
 			Name: in.Name.Name,
 		}
 		for _, method := range x.Methods.List {
-			if ft, ok := method.Type.(*ast.FuncType); ok && len(method.Names) > 0 {
-				out.Methods = append(out.Methods, InterfaceMethodDescriber{
-					BelongsTo: out.Name,
-					Name:      method.Names[0].Name,
-					Returns:   parseArguments(ft.Results),
-					Args:      parseArguments(ft.Params),
-				})
+			switch ft := method.Type.(type) {
+			case *ast.FuncType:
+				if len(method.Names) > 0 {
+					ad := parseArguments(ft.Params)
+					out.Methods = append(out.Methods, InterfaceMethodDescriber{
+						BelongsTo: out.Name,
+						Name:      method.Names[0].Name,
+						Returns:   parseArguments(ft.Results),
+						Args:      ad, // parseArguments(ft.Params),
+					})
+				}
 			}
 		}
 		return out
@@ -129,8 +132,15 @@ func (id *InterfaceDescriber) GetName() string {
 }
 
 func (id *InterfaceMethodDescriber) Describe() (string, error) {
-
-	tmpl := `method {{ if verbose }} declared {{ end }} called {{ prepare .Name }} {{ if verbose }} belonging to the {{ prepare .BelongsTo }} interface {{ end }} {{ .Args }} {{ .Returns }} .`
+	tmpl := `
+	method {{ if verbose }} declared {{ end }} 
+	called {{ prepare .Name }} 
+		{{ if verbose }} belonging to the 
+			{{ prepare .BelongsTo }} interface 
+		{{ end }} 
+	{{ .Args }} 
+	{{ .Returns }} .
+	`
 
 	args, err := describeArguments(id.Args)
 	if err != nil {
@@ -162,7 +172,7 @@ func (ad *ArrayDescriber) GetName() string {
 }
 
 func (ad *ArrayDescriber) Describe() (string, error) {
-	tmpl := `Declaring type {{ prepare .Name }} which is a {{ prepare .Elt }} {{ .Type }}`
+	tmpl := `type declared called {{ prepare .Name }} which is a {{ prepare .Elt }} {{ .Type }}`
 	s, err := RenderTemplate(tmpl, ad)
 	if err != nil {
 		return "", err
