@@ -6,6 +6,7 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"io/ioutil"
 	"log"
 	"regexp"
 )
@@ -22,31 +23,47 @@ func parseChunkOfCode(code string) *ast.File {
 	return p
 }
 
-func main() {
-	codeSample := `
+func parseExampleFile(filename string) *ast.File {
+	b, err := ioutil.ReadFile(filename)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return parseChunkOfCode(string(b))
+}
+
+const (
+	codeSample = `
 	package main
 
-	import(
-		"fmt"
-		"log"
-	)
+	//import(
+	//	"fmt"
+	//	"log"
+	//)
 
-	type SomeInterface interface {
-		DoSomeWork(arg string) (uintptr, error) 
-	}
-	
-	func (f fart) whatever(a, url string, arbitrary bool) error {
-		return nil
-	}
-	
 	func main() {
+		something, err := someFunction(someArg, 9)
 		fmt.Println("hello, world!")
 	}
 `
+)
+
+func main() {
+	var (
+		filename string         //= "example_packages/quine/main.go"
+		chunks   []string = nil //[]string{"SomeInterface"}
+		p        *ast.File
+	)
+
 	x := interpret.NewInterpreter(nil)
-	p := parseChunkOfCode(codeSample)
-	//if err := x.InterpretFile(p, nil); err != nil {
-	if err := x.InterpretFile(p, []string{"SomeInterface"}); err != nil {
+
+	if filename != "" {
+		p = parseExampleFile(filename)
+	} else {
+		p = parseChunkOfCode(codeSample)
+	}
+
+	if err := x.InterpretFile(p, chunks); err != nil {
 		log.Fatal(err)
 	}
 

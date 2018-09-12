@@ -18,6 +18,8 @@ const (
 	HighVerbosity
 )
 
+var defaultInterpreter *interpreter
+
 type Interpreter interface {
 	InterpretFile(input *ast.File, chunks []string) error
 	RawOutput() string
@@ -39,12 +41,13 @@ func NewInterpreter(thingsToRead []string) Interpreter {
 		partsToRead[p] = struct{}{}
 	}
 
-	return &interpreter{
+	defaultInterpreter = &interpreter{
 		partsToRead: partsToRead,
 		verbosity:   NormalVerbosity,
 		logger:      log.New(os.Stdout, "", log.LstdFlags),
 		replacer:    defaultStringReplacer,
 	}
+	return defaultInterpreter
 }
 
 func (i *interpreter) RawOutput() string {

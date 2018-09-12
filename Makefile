@@ -18,3 +18,7 @@ vendor:
 revendor:
 	rm -rf vendor go.*
 	$(MAKE) vendor
+
+.PHONY: introspect
+introspect:
+	go run cmd/cli/main.go read --file=pkg/interpreter/interpreter.go --function Interpreter

@@ -6,8 +6,10 @@ import (
 )
 
 type ArgDesc struct {
-	Type  string
-	Names []string
+	Literal bool
+	Type    string
+	Names   []string
+	Value   string
 }
 
 type FuncDecl struct {
@@ -154,11 +156,28 @@ func describeReturns(in []ArgDesc) (string, error) {
 	return RenderTemplate(tmpl, s)
 }
 
-func describeBody() (string, error) {
-	//nbs := NewBlockStmt(f.original.Body.List)
-	//nbs.Describe()
+func use(...interface{}) {}
 
-	return "", nil
+func describeBody(in *ast.FuncDecl) (out string, err error) {
+	if in.Body != nil {
+		for _, s := range in.Body.List {
+			switch x := s.(type) {
+			case *ast.AssignStmt:
+				o, err := defaultInterpreter.parseAssignStmt(x)
+				if err != nil {
+					return out, err
+				}
+				out += o
+			case *ast.ExprStmt:
+				o, err := defaultInterpreter.parseExprStmt(x)
+				if err != nil {
+					return out, err
+				}
+				out += o
+			}
+		}
+	}
+	return
 }
 
 func (f FuncDecl) GetName() string {
@@ -181,22 +200,25 @@ func (f FuncDecl) Describe() (string, error) {
 		return "", err
 	}
 
-	if _, err = describeBody(); err != nil {
+	bodystmt, err := describeBody(f.original)
+	if err != nil {
 		return "", err
 	}
 
-	tmpl := `function declared called {{ prepare .Name }} {{ .Receivers }} {{ .Args }} {{ .Returns }} `
+	tmpl := `function declared called {{ prepare .Name }} {{ .Receivers }} {{ .Args }} {{ .Returns }}. The body contains {{ .Body }} `
 
 	x := struct {
 		Name      string
 		Receivers string
 		Args      string
 		Returns   string
+		Body      string
 	}{
 		Name:      f.Name,
 		Receivers: recvstmt,
 		Args:      argstmt,
 		Returns:   retstmt,
+		Body:      bodystmt,
 	}
 
 	return RenderTemplate(tmpl, x)
