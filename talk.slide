@@ -57,11 +57,6 @@ becomes something like
 .code example_files/slightly_more_complicated.go
   sgtm read --file=example_files/slightly_more_complicated.go
 
-* Vector Example
-
-.code example_files/grand_goal.go
-  sgtm read --file=example_files/grand_goal.go --voice-service=polly
-
 * Introspective
 
 .code pkg/interpreter/interpreter.go /START OMIT/,/END OMIT/
