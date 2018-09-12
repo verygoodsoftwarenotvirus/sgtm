@@ -118,7 +118,6 @@ func (i *interpreter) InterpretFile(input *ast.File, chunks []string) error {
 					if ts, ok := spec.(*ast.TypeSpec); ok {
 						td := NewTypeDescriber(ts)
 						desc, err := td.Describe()
-
 						if err != nil {
 							return err
 						}

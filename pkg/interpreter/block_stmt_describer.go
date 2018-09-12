@@ -5,18 +5,6 @@ import (
 	"go/ast"
 )
 
-type StatementParser struct {
-	original []ast.Stmt
-}
-
-func NewStatementParser(bs []ast.Stmt) *StatementParser {
-	sp := &StatementParser{
-		original: bs,
-	}
-
-	return sp
-}
-
 func parseExprStmt(in *ast.ExprStmt) (string, error) {
 	switch e := in.X.(type) {
 	case *ast.CallExpr:

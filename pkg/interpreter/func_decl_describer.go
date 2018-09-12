@@ -78,12 +78,17 @@ func parseArguments(in *ast.FieldList) []ArgDesc {
 						out = append(out, ArgDesc{Type: prepareName(name), Pointer: true, Names: []string{"REPLACE ME"}})
 					}
 				default:
-					println()
+					println() // TODO
 				}
 			case *ast.ArrayType:
-				println("IMPLEMENT ME")
+				ad := ArgDesc{
+					Type: fmt.Sprintf(" array of %s ", u.Elt.(*ast.Ident).Name),
+					//Name: in.Name.Name,
+					//Elt:  x.Elt.(*ast.Ident).Name,
+				}
+				out = append(out, ad)
 			default:
-				print()
+				println() // TODO
 			}
 		}
 	}
