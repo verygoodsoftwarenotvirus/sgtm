@@ -24,6 +24,12 @@ type InterfaceMethodDescriber struct {
 	Returns   []ArgDesc
 }
 
+type ArrayDescriber struct {
+	Type string
+	Name string
+	Elt  string
+}
+
 func NewTypeDescriber(in *ast.TypeSpec) Describer {
 	switch x := in.Type.(type) {
 	// NOTES: This is where we would handle aliases of any type, so if I write:
@@ -68,6 +74,13 @@ func NewTypeDescriber(in *ast.TypeSpec) Describer {
 			}
 		}
 		return out
+	case *ast.ArrayType:
+		ad := &ArrayDescriber{
+			Type: "array",
+			Name: in.Name.Name,
+			Elt:  x.Elt.(*ast.Ident).Name,
+		}
+		return ad
 	}
 	return &noopDescriber{}
 }
@@ -142,4 +155,17 @@ func (id *InterfaceMethodDescriber) Describe() (string, error) {
 	}
 
 	return RenderTemplate(tmpl, x)
+}
+
+func (ad *ArrayDescriber) GetName() string {
+	return ad.Name
+}
+
+func (ad *ArrayDescriber) Describe() (string, error) {
+	tmpl := `Declaring type {{ prepare .Name }} which is a {{ prepare .Elt }} {{ .Type }}`
+	s, err := RenderTemplate(tmpl, ad)
+	if err != nil {
+		return "", err
+	}
+	return s, nil
 }
