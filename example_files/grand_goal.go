@@ -17,6 +17,5 @@ func main() {
 
 	multiplier := 3
 	scaled := scale(sum, multiplier)
-
 	fmt.Printf("Scaled up by %d the sum is: %v\n", multiplier, scaled)
 }

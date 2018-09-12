@@ -50,15 +50,31 @@ becomes something like
 * Hello world
 
 .code example_files/hello_world.go
+  sgtm read --file=example_files/hello_world.go
 
 * Slightly more complicated
 
 .code example_files/slightly_more_complicated.go
+  sgtm read --file=example_files/slightly_more_complicated.go
 
 * Vector Example
 
 .code example_files/grand_goal.go
+  sgtm read --file=example_files/grand_goal.go --voice-service=polly
 
 * Introspective
 
+.code pkg/interpreter/interpreter.go /START OMIT/,/END OMIT/
+  sgtm read --file=pkg/interpreter/interpreter.go --part Interpreter --voice-service=polly
+
+* Introspective
+
+.image presentation/galaxybrain.webp 500 900
+
+* Multiple Parts
+
 .code presentation/part.go
+  sgtm read --file=pkg/interpreter/interpreter.go --part Interpreter --part Describer
+
+* Questions?
+

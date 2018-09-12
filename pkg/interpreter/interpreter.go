@@ -1,3 +1,4 @@
+// START OMIT
 package interpret
 
 import (
@@ -9,21 +10,20 @@ import (
 	"strings"
 )
 
-type verbosity int
-
-var currentVerbosity verbosity
-
 const (
 	NormalVerbosity verbosity = iota
 	HighVerbosity
 )
 
-var defaultInterpreter *interpreter
+type Interpreter interface { // HL
+	InterpretFile(input *ast.File, chunks []string) error // HL
+	RawOutput() string                                    // HL
+} // HL
 
-type Interpreter interface {
-	InterpretFile(input *ast.File, chunks []string) error
-	RawOutput() string
-}
+// END OMIT
+type verbosity int
+
+var currentVerbosity verbosity
 
 type interpreter struct {
 	partsToRead map[string]struct{}
@@ -41,7 +41,7 @@ func NewInterpreter(thingsToRead []string, verbose bool) Interpreter {
 		partsToRead[p] = struct{}{}
 	}
 
-	defaultInterpreter = &interpreter{
+	defaultInterpreter := &interpreter{
 		partsToRead: partsToRead,
 		logger:      log.New(os.Stdout, "", log.LstdFlags),
 		replacer:    defaultStringReplacer,
@@ -148,4 +148,9 @@ func (i *interpreter) InterpretFile(input *ast.File, chunks []string) error {
 	}
 
 	return nil
+}
+
+type Describer interface {
+	Describe() (string, error)
+	GetName() string
 }

@@ -25,8 +25,11 @@ the-goal:
 
 .PHONY: introspect
 introspect:
-	@#go run cmd/cli/main.go read --file=pkg/interpreter/describer.go --part Describer --voice-service=polly
 	@go run cmd/cli/main.go read --file=pkg/interpreter/interpreter.go --part Interpreter --voice-service=polly
+
+.PHONY: multi-introspect
+multi-introspect:
+	@go run cmd/cli/main.go read --file=pkg/interpreter/interpreter.go --part Interpreter --part Describer --voice-service=polly
 
 .PHONY: playground
 playground:

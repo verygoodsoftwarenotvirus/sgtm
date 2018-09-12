@@ -82,6 +82,9 @@ func init() {
 		Short: "",
 		Long:  "reads a file (or parts of a file) of your choice",
 		RunE: func(*cobra.Command, []string) error {
+			if filePath == "" {
+				return errors.New("no filename provided!")
+			}
 			x := interpret.NewInterpreter(functionsToRead, verbose)
 			if err := x.InterpretFile(parseCode(), functionsToRead); err != nil {
 				log.Fatal(err)
